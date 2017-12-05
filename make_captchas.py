@@ -1,30 +1,36 @@
 from io import BytesIO
+import os
 from os import path, listdir, makedirs
-from random import randint, choices
+from random import choices
 from captcha.image import ImageCaptcha
-import string
+import config
 from tqdm import tqdm
 
-def generateCaptchas(amt, outfolder='', minlength=3, maxlength=8):
-    assert(minlength <= maxlength)
+def generate_words(num_generate, charset, length):
+    words = []
+    for i in range(num_generate):
+        s = ''.join(choices(charset, k=length))
+        words.append(s)
+    return words
+
+def create_captchas(words, outfolder):
+    image = ImageCaptcha(width=config.img_width, height=config.img_height)
+
+    for i in tqdm(range(len(words)), desc="Generating captchas"):
+        #create a captcha for each string
+        captcha_text = words[i]
+        image_path = os.path.join(outfolder, str(i)+'_'+captcha_text+'.png')
+        image.write(captcha_text, image_path)
+
+def make_captcha(num_generate=24000,outfolder=''):
     if(not path.isdir(outfolder) or not path.exists(outfolder)):
         makedirs(outfolder)
+    length = config.captcha_length
+    charset = config.charset
 
-    image = ImageCaptcha()
-    strings = []
+    words = generate_words(num_generate, charset, length)
+    create_captchas(words, outfolder)
 
-    for i in range(amt):
-        #determine a random length between minlength and maxlength:
-        length = randint(minlength,maxlength)
-        val = ''.join(choices(string.ascii_uppercase + string.digits, k=length))
-        strings.append(val)
-    for i in tqdm(range(len(strings)), desc="Generating captchas"):
-        #create a captcha for each string
-        captcha_text = strings[i]
-        captcha_path = outfolder + '/' + captcha_text + '.png'
-        if(not path.exists(captcha_path)):
-            #write the captcha only if one doesn't exist
-            image.write(captcha_text, captcha_path)
-    print("Finished generating %d captchas" % amt)
+    print("Finished generating %d captchas" % num_generate)
 
-generateCaptchas(10000, outfolder='captchas')
+make_captcha(24000, outfolder='captchas')
